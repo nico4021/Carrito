@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html>
+    <script src="js/jquery-2.1.4.js"></script>
+    <script src="js/bootstrap.js"></script>
+	<link rel="stylesheet" type="text/css" href="css/bootstrap.css" />
+    <link rel="stylesheet" type="text/css" href="css/custom.css" />
+<head>
+    <meta charset="utf-8" />
+    <meta name="format-detection" content="telephone=no" />
+    <meta name="msapplication-tap-highlight" content="no" />
+    <!-- WARNING: for iOS 7, remove the width=device-width and height=device-height attributes. See https://issues.apache.org/jira/browse/CB-4323 -->
+    <meta name="viewport" content="user-scalable=no, initial-scale=1, maximum-scale=1, minimum-scale=1, width=device-width, height=device-height, target-densitydpi=device-dpi" />
+	<title>Comprero</title>	
+</head>
+<body background="img/textura.jpg">
+<!-- NAAAAAAAAAAAAAVVVVVVVVVVVVVVVVVV -->
+	<nav class="navbar navbar-default navbar-fixed-top">
+      <div class="container">
+        <div class="navbar-header">
+            <img src="img/icon.png" class="carrito navbar-brand" /><p class="navbar-brand">Carrito</p>      
+        
+        
+          <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+        
+        </div>
+        <div id="navbar" class="navbar-collapse collapse">
+          <ul class="nav navbar-nav">
+            <li class="active"><a href="#">Inicio</a></li>
+            <li><a href="#">Ayuda</a></li>
+            <li><a href="#">Información</a></li>
+              </ul>
+            </li>
+          </ul>
+          </div><!--/.nav-collapse -->
+      </div>
+    </nav>
+<!-- END NAAAAAAAAAAAAAVVVVVVVVVVVVVVVVVV -->
+<div class="panel panel-success"> 
+    <br />   
+    <div class="header panel-heading text-center">
+        <h1>¡Bienvenido!</h1>
+    </div>
+</div>
+<script>
+    window.db = null;
+    document.addEventListener("deviceready", onDeviceReady, false);
+        
+        // Revisamos si cordova reconoce el dispositivo
+        //Creamos la base de datos
+        function onDeviceReady() {
+            var db = openDatabase('shopDB', '1.0', 'ShopDatabase', 100*1024);
+            if (db){
+                window.db=db;
+                db.transaction(populateDB, errorCB);
+            }
+        }
+        
+        //Creamos la tabla si es que no existe
+        function populateDB(tx) {
+            tx.executeSql("CREATE TABLE IF NOT EXISTS shopTDB(id INT PRIMARY KEY ASC, nombre TEXT, cantidad INT, tipo TEXT);", [], successCB, errorCB);
+        }
+        
+
+        //Funcion Delete que ejecuta deleteDBA
+        function deleteDB() {
+            window.db.transaction(deleteDBA, errorCB);
+        }
+        
+        //Esto tira la tabla, y borra la lista de supermercado
+        function deleteDBA(tx){
+            try{
+                tx.executeSql("DROP TABLE shopTDB;");
+                var ids = ['lacteo', 'carbo', 'sano', 'limpio', 'otro'];
+                for (var i =0 ; i<=4; i++){
+                    document.getElementById(ids[i]).innerHTML ="";
+                }
+                }
+            catch(err){
+                window.alert("Ya no queda nada que borrar!!!");
+            }    
+        }
+
+        // Respuesta ante un error de transaccion de la base de datos
+        function errorCB(err) {
+            alert("Error processing SQL: "+err.message);
+            
+        }
+
+        // Respuesta ante una transaccion realizada correctamente
+        function successCB() {
+            if (window.db!=null){
+                window.alert("Transaccion realizada");                
+            }
+            else
+            window.alert("Aca paso algo malo");
+        }
+        //querySuccess es llamada por queryDBA que a su vez es llamada por queryDB
+        function querySuccess(tx, results){
+            //Si la base de datos no esta vacia:
+            if(results.rows.length!=0){
+                //para cada fila que encuentre la query, teniendo como valor maximo la ultima fila
+                for(var index=0;index<results.rows.length; index++){
+                    //row va guardar cada fila como un item para poder utilizar el contenido mas adelante
+                    var row=results.rows.item(index);
+                    //el array tipo contiene todos los tipos de productos que se pueden clasificar
+                    var tipo = ['Productos Lacteos y Quesos','Panaderia y Reposteria', 'Frutas y Verduras', 'Productos de limpieza', 'Productos enlatados y otros'];
+                    //el array ids es utilizado para rellenar la lista.(contiene todos los ids de la tabla
+                                                                        //para realizar innerHTML)
+                    var ids = ['lacteo', 'carbo', 'sano', 'limpio', 'otro'];
+                    //para cada tipo de producto
+                    for (var i = 0; i<=tipo.length; i++){
+                        var numero = 0;
+                        //Buscamos el tipo de cada item
+                        var tipoDB = row.tipo;
+                        //Buscamos el nombre de cada item
+                        var nombre = row.nombre;
+                        //Buscamos la cantidad de cada item
+                        var cantidad = row.cantidad;
+                        //si el "tipo" de la base de datos coincide con el del array tipo:
+                        if (tipoDB == tipo[i]){
+                            //relleno la tabla
+                            document.getElementById(ids[i]).innerHTML += '<tr><th scope="row">'+numero+'</th><td>'+ nombre +'</td><td>'+ cantidad +'</td></tr>';
+                            
+                        }
+                        numero++;
+                    }
+                }
+            }
+            //Si lo anterior no se puede, tira una alerta de error porque la base de datos esta vacia
+            else {
+                window.alert("La base de datos está vacia, deberias agregar algo.");
+                }
+                
+        }
+        //Llama a queryDBA
+        function queryDB(){
+            window.db.transaction(queryDBA, errorCB);
+            
+        }
+        //Realiza la consulta y va a querySuccess
+        function queryDBA(tx){
+            tx.executeSql('SELECT * FROM shopTDB', [], querySuccess, errorCB);
+        }
+        //insertDB mete los datos a la base de daos
+        function insertDB(tx, err) {
+            //creo la tabla en caso de que haya sido borrada y el programa no se haya cerrado
+            tx.executeSql("CREATE TABLE IF NOT EXISTS shopTDB(id INT PRIMARY KEY ASC, nombre TEXT, cantidad INT, tipo TEXT);");
+            //creo las variables que se van a utilizar en la consulta
+            var nombreProducto = document.getElementById("nombreProducto").value;
+            var cantidadProducto = document.getElementById("cantidad").value;
+            var a = document.getElementById("tipoProducto");
+            var tipoProducto = a.options[a.selectedIndex].value;
+            if (nombreProducto!="" && cantidadProducto==""){
+                window.alert("Porfavor ingrese la cantidad que necesita!!!");
+            }
+            else if(cantidadProducto!="" && nombreProducto==""){
+                window.alert("Ingrese el producto que necesita!!!");
+            }
+            else if(cantidadProducto=="" && nombreProducto==""){
+                window.alert("Ingrese los campos!!!");
+            }
+            else if(tipoProducto===""){
+                window.alert("Tiene que seleccionar un tipo de producto");
+            }
+            else{
+                //hago la consulta de insert para meter los datos a la base de datos
+                tx.executeSql('INSERT INTO shopTDB (nombre,cantidad,tipo) VALUES (' +
+                        '"' + nombreProducto +'",' + cantidadProducto +',"' + tipoProducto+'")');
+                //vacio los campos.
+                document.getElementById("nombreProducto").value = "";
+                document.getElementById("cantidad").value = "";
+            }
+        }
+        //llama a insertDB.
+        function goInsert() {
+            window.db.transaction(insertDB, errorCB);
+        }
+
+
+    </script>
+<div class="panel panel-primary divinicio">
+    <div class="panel-body text-center">
+        <p>Esta aplicación mantendrá un orden en sus próximas compras!</p><br />
+        <p>Agregar producto:</p><br />
+         <form role="form">
+            <div class="input-group">
+              <span class="input-group-addon" id="basic-addon1">Nombre del Producto:</span>
+              <input type="text" class="form-control" id="nombreProducto" placeholder="Ej: Manteca 200g" aria-describedby="basic-addon1" required>
+            </div>
+            <br />
+            <div class="input-group">
+              <span class="input-group-addon" id="basic-addon2">Cantidad a comprar:</span>
+              <input type="text" class="form-control" id="cantidad" placeholder="Ingrese solo Números porfavor" aria-describedby="basic-addon2" required>
+            </div>
+            <br />
+           <div class="container">
+               <div class="dropdown">
+                  <select class="btn btn-default dropdown-toggle" id="tipoProducto" data-toggle="dropdown" aria-describedby="basic-addon3" value="Tipo de producto">  
+                    <div class="dropdown-menu">
+                        <option value="" disabled selected>Tipo de producto</option>
+                        <option value="Productos Lacteos y Quesos">Lacteos y Quesos</option>
+                        <option value="Panaderia y Reposteria">Panaderia y Reposteria</option>
+                        <option value="Frutas y Verduras">Frutas y Verduras</option>
+                        <option value="Productos de limpieza">Limpieza y salud</option>
+                        <option value="Productos enlatados y otros">Productos enlatados y otros</option>
+                    </div>
+                    <br />
+               </div>
+            </div>
+                <br />
+           <div class="container center">  
+            <input type="button" class="btn btn-default" onclick="goInsert()" value="Agregar">
+            <input type="button" class="btn btn-default" onclick="queryDB()" value="Cargar Lista">
+           </div><br/>
+           <div class="container center">
+            <input type="button" class="btn btn-danger" onclick="deleteDB()" value="Nueva lista">
+           </div>             
+        </form>
+    
+</div>
+
+
+</div> 
+<div class="panel panel-primary divinicio">
+    <div class="container">
+		<div class="panel panel-primary">
+			<div class="panel-heading">
+				<h4 class="panel-title" id="Productos de Limpieza"><img src="img/logoLimpio.png"></img>Productos de Limpieza</h4>
+			</div>
+			<table class="table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Nombre Producto</th>
+                        <th>Cantidad</th>    
+                    </tr>
+                </thead>
+                <tbody id="limpio">
+                
+                </tbody>
+            </table>
+			</div>
+           
+		
+	</div>
+    <div class="container">
+		<div class="panel panel-success">
+			<div class="panel-heading">
+				<h4 class="panel-title"><img src="img/logoSano.png"></img>Frutas y Verduras</h4>
+			</div>
+			<table class="table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Nombre Producto</th>
+                        <th>Cantidad</th>    
+                    </tr>
+                </thead>
+                <tbody id="sano">
+                
+                </tbody>
+            </table>
+		</div>
+	</div>
+    <div class="container">
+		<div class="panel panel-info">
+			<div class="panel-heading">
+				<h4 class="panel-title"><img src="img/logoLacteo.png"></img>Productos lacteos y quesos</h4>
+			</div>
+			<table class="table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Nombre Producto</th>
+                        <th>Cantidad</th>    
+                    </tr>
+                </thead>
+                <tbody id="lacteo">
+                
+                </tbody>
+            </table>
+		</div>
+	</div>
+    <div class="container">
+		<div class="panel panel-warning">
+			<div class="panel-heading">
+				<h4 class="panel-title"><img src="img/logoCarbohidrato.png"></img>Panadería y Repostería</h4>
+			</div>
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Nombre Producto</th>
+                        <th>Cantidad</th>    
+                    </tr>
+                </thead>
+                <tbody id="carbo">
+                
+                </tbody>
+            </table>
+		</div>
+	</div>
+	<div class="container">
+		<div class="panel panel-danger">
+			<div class="panel-heading">
+				<h4 class="panel-title"><img src="img/logoOtro.png"></img>Productos enlatados y otros</h4>
+			</div>
+			<table class="table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Nombre Producto</th>
+                        <th>Cantidad</th>    
+                    </tr>
+                </thead>
+                <tbody id="otro">
+                
+                </tbody>
+            </table>
+		</div>
+        </div>
+</div>   
+</div>
+
+    <!-- ************* scripts ************* -->
+
+    <script type="text/javascript" src="cordova.js"></script>
+    <script type="text/javascript" src="js/index.js"></script>
+    <script type="text/javascript">
+            app.initialize();
+        </script>
+</body>	
+</html>
